@@ -1,0 +1,55 @@
+(mod (STATE method args)
+
+    (include "condition_codes.clib")
+    (include "curry_and_treehash.clib")
+    (include "coinman.clvm")
+
+    (defun get-state-props ()
+        ; state properties
+        (list "pk" "to")
+    )
+
+    (defun get-methods ()
+        ; methods
+        (list
+            (list "send_message" "msg")
+            (list "get_messages" "start" "end")
+        )
+    )
+
+    (defun get-hints (STATE)
+        (if (get STATE "to")
+            (list (sha256 (point_add (get STATE "pk") (get STATE "to")))) ; direct message channel
+            (list (sha256 "catchall channel")) ; catchall channel
+        )
+    )
+
+    (def-contract STATE
+        (if (= method "send_message")
+            (list
+                (list AGG_SIG_ME (get STATE "pk") (sha256 (f args)) )
+                (list RECREATE_COIN
+                    () ; no state update
+                    1
+                    (get-hints STATE) ; hints
+                )
+            )
+            (if (= method "get_messages")
+                (list
+                    (list QUERY_COINS
+                        ; query filters
+                        (list
+                            (list "hint"  (get-hints STATE))
+                            (list "spent" 1)
+                        )
+                        ; block range interval (max 100 blocks)
+                        (list (f args) (f (r args)))
+                    )
+                )
+                ; default should return meta information for the contract
+                (list (list CONTRACT_META (get-state-props) (get-methods) (get-hints STATE)))
+            )
+        )
+    )
+
+)
