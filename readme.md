@@ -26,13 +26,13 @@ poetry shell
 Clone Chirp, a messaging protocol, that includes UX too.
 
 ```
-git clone git@github.com:trepca/chirp.git`
+git clone git@github.com:trepca/chirp.git
 
 cd chirp
 
 coinman init .
 
-# run it in a  simulator
+# run it in a simulator
 
 coinman --simulator runserver
 
@@ -47,7 +47,7 @@ You'll need a full node for testnet or mainnet and chia config file the machine 
 Install coinman as before and run poetry shell.
 
 ```
-git clone git@github.com:trepca/chirp.git`
+git clone git@github.com:trepca/chirp.git
 
 cd chirp
 # for testnet
