@@ -169,7 +169,7 @@ export default {
     const interval = setInterval(async () => {
       messages_loading.value = true;
       const updated_msgs = await fetchMessages(contract_name, state
-        .value, wallet_info.value.state.blockchain_state.peak.height);
+        .value, wallet_info.value.state.peak.height);
       if (updated_msgs == null) {
         return
       } else {
@@ -189,7 +189,7 @@ export default {
       ]);
       console.log("my coins", my_coins.value)
       messages.value = await fetchMessages(contract_name, state.value,
-        wallet_info.value.state.blockchain_state.peak.height);
+        wallet_info.value.state.peak.height);
       rpc_call("node.get_min_fee_per_cost")
         .then(async res => {
           let _min_fee_per_cost = 0;
