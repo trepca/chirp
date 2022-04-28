@@ -11,7 +11,10 @@ Features
 
 # Quickstart with a simulator
 
-No requirements, no nodes running etc.
+No external requirements, no nodes running etc.
+
+Install poetry if you don't have it already: 
+https://python-poetry.org/docs/master/#installing-with-the-official-installer
 
 ```sh
 git clone git@github.com:trepca/coinman.git
