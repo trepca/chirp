@@ -39,11 +39,23 @@ coinman --simulator runserver
 
 # Running on testnet or mainnet
 
-All of the above, expect last command
+You'll need a full node for testnet or mainnet and chia config file the machine you're running this.
+
+Install coinman as before and run poetry shell.
 
 ```
-coinman --testnet runserver
+git clone git@github.com:trepca/chirp.git`
+
+cd chirp
+# for testnet
+coinman init --testnet .
+
+# for mainnet
+coinman init .
+
+
+coinman runserver
+
+
 
 ```
-
-`
