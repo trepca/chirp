@@ -11,18 +11,25 @@ async function rpc_call(method, params) {
     })
   };
   const request = await fetch("/rpc/", requestOptions);
-  return await request.json();
+  const json = await request.json();
+  return json.result;
 }
-async function fetchMessages(contract_name, state) {
-  const resp = await rpc_call("contract.invoke", [
+async function fetchMessages(contract_name, state, peak_height) {
+  console.log("Fetching messages for peak", peak_height)
+  if (!peak_height) return [];
+  let start_height;
+  if (peak_height > 100)
+    start_height = peak - 100;
+  else
+    start_height = 0;
+  const result = await rpc_call("contract.invoke", [
     contract_name,
     state,
     "get_messages",
-    ["0",
-      "100"
+    [start_height,
+      peak_height
     ]
   ]);
-  const result = resp.result;
   if (result.error) {
     return null;
   }
@@ -46,6 +53,53 @@ export default {
         .toLocaleString();
       return dateTimeStr;
     },
+    async mintCoin() {
+      this.loading = true;
+      let requestOptions = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: new Date()
+            .getTime(),
+          method: "contract.mint",
+          params: [this.contract_name, this.state.value, 1, parseInt(
+              this.user_tx_fee *
+              1000000000000) // convert into mojos
+          ]
+        })
+      };
+      const request = await fetch("/rpc/", requestOptions);
+      const resp = await request.json();
+      const status = resp.result;
+      console.log("Got back", status);
+      if (status.error) {
+        alert("Sorry, your fee of " + this.user_tx_fee +
+          " was too small. Please check the recommended fee below the send button."
+        )
+        return;
+      }
+      if (this.wallet_info.is_simulator) {
+        console.log("Farming a block as we're in simulator mode")
+        await rpc_call("node.farm_block");
+      }
+      this.my_coins.value = await rpc_call("contract.get_coins", [
+        this.contract_name,
+        this.state.value,
+        this.amount
+      ]);
+      console.log("updated coins", this.my_coins.value, this.my_coins.value
+        .length);
+      this.wallet_info.value = await rpc_call("wallet.poke");
+      let self = this;
+      setTimeout(async () => {
+        self.mint_alert = false;
+      }, 4000)
+      self.mint_alert = true;
+      console.log("What's our wallet info: ", this.wallet_info);
+      this.loading = false;
+
+    },
     async sendMessage() {
       const msg = this.input;
       console.log(msg);
@@ -68,16 +122,29 @@ export default {
       const resp = await request.json();
       const status = resp.result;
       console.log("Got back", status);
-      if (status.error) {
+      if (status.error == "FeeTooLowError") {
         alert("Sorry, your fee of " + this.user_tx_fee +
           " was too small. Please check the recommended fee below the send button and try something closer to that."
         )
+      } else if (status.error == "AlreadyInThePool") {
+        alert(
+          "You already have a message pending in mempool, please wait for the next block"
+        )
+      } else {
+        const self = this;
+        setTimeout(async () => {
+          self.sent_alert = false;
+        }, 4000)
+        self.sent_alert = true;
+
+        if (this.wallet_info.is_simulator) {
+          console.log("Farming a block as we're in simulator mode")
+          await rpc_call("node.farm_block");
+        }
+        this.wallet_info.value = await rpc_call("wallet.poke");
       }
-      alert(
-        "Message sent! It will appear in the next block in probably around 40 secs."
-      );
-      this.user_tx_fee.value = 0;
-      this.input.value = "";
+      this.user_tx_fee = 0;
+      this.input = "";
       this.loading = false;
 
     },
@@ -93,50 +160,54 @@ export default {
     const loading = ref(true);
     const user_tx_fee = ref(0);
     const input = ref("");
-    let my_coins = {};
+    const my_coins = reactive([]);
     const state = reactive({});
+    const mint_alert = ref(false);
+    const sent_alert = ref(false);
     let amount = 1;
     const contract_name = "msg.clvm";
-    console.log("yolo");
     const interval = setInterval(async () => {
       messages_loading.value = true;
       const updated_msgs = await fetchMessages(contract_name, state
-        .value);
+        .value, wallet_info.value.blockchain_state.peak);
       if (updated_msgs == null) {
         return
       } else {
         messages.value = updated_msgs;
       }
       messages_loading.value = false;
-    }, 30000)
+    }, 10000)
     onMounted(async () => {
       console.log("mounted");
       wallet_info.value = await rpc_call("wallet.poke");
-      console.log(wallet_info.value);
-      state.value = { pk: wallet_info.value["result"]["public_key"] };
-      my_coins = await rpc_call("contract.get_coins", [
+      console.log("fetched wallet info", wallet_info.value);
+      state.value = { pk: wallet_info.value["public_key"] };
+      my_coins.value = await rpc_call("contract.get_coins", [
         contract_name,
         state.value,
         amount
       ]);
-
-      messages.value = await fetchMessages(contract_name, state.value);
+      console.log("my coins", my_coins.value)
+      messages.value = await fetchMessages(contract_name, state.value,
+        wallet_info.value.blockchain_state.peak);
       rpc_call("node.get_min_fee_per_cost")
         .then(async res => {
+          let _min_fee_per_cost = 0;
+          if (res) _min_fee_per_cost = parseInt(res);
           const cost_per_send_msg = await rpc_call(
             "contract.get_fee_for_invoke", [
               contract_name,
               state.value,
-              res.result,
+              _min_fee_per_cost,
               "send_message",
 
               "an average sized message to send an average sized message to send an average sized message to send"
 
             ]
           );
-          min_fee_per_cost.value = res.result.toFixed(
-            3);
-          tx_fee.value = (cost_per_send_msg.result.toFixed(
+          console.log("Cost per send is: ", cost_per_send_msg);
+          min_fee_per_cost.value = _min_fee_per_cost
+          tx_fee.value = (cost_per_send_msg.toFixed(
                 2) /
               1000000000000)
             .toFixed(6);
@@ -158,7 +229,9 @@ export default {
       tx_fee,
       user_tx_fee,
       messages_loading,
-      input
+      input,
+      mint_alert,
+      sent_alert,
     };
   },
   template: /*html*/ `
@@ -168,7 +241,7 @@ export default {
           <div style="color: gray; float:left; padding-top:20px; padding-left:10px">A messaging dapp on Chia Network 🌱</div>
           <details class="profile">
     <summary>
-    Your Public key: {{wallet_info.result.public_key.slice(2,8)}}...{{wallet_info.result.public_key.slice(-6)}}
+    Your Public key: {{wallet_info.public_key.slice(2,8)}}...{{wallet_info.public_key.slice(-6)}}
     </summary>
 <table>
 <thead>
@@ -178,7 +251,7 @@ export default {
   </tr>
 </thead>
 <tbody>
-  <tr v-for="(val, key) in wallet_info.result">
+  <tr v-for="(val, key) in wallet_info">
     <td>{{key}}</td>
     <td>{{val}}</td>
   </tr>
@@ -189,6 +262,7 @@ export default {
 </div>
         <div v-if="!loading" id="content">
           <h3>Messages <small v-if="messages_loading" style="color:gray"> Loading new messages...</small></h3>
+          <div class="chat">
           <div class="messages-list">
             <template v-for="msg in messages" key="msg.meta.id">
               <div class="message">
@@ -200,15 +274,25 @@ export default {
               <span>{{unhex(msg.data[0])}}</span>
               </div>
             </template>
+            <strong v-if="!messages.length" style="color:gray; text-align:center;padding: 30px">No messages yet, send some!</strong>
+          
+          </div>
+          
           </div>
           <div id="new-message">
           <h4>Send a new message</h4>
-            <input type="text" v-model="input" style="border:1px solid; background-color: white;float:left;width:75%"/>
-            <button :disabled="!input" v-on:click="sendMessage" type="submit" style="width:24%; text-align: center; margin-right:0; float:right; ">Send</button>
-            <div style="float: right; font-size: 0.7em;width:200px; text-align:right;">
-            <label style="padding-right: 10px; line-height:1.5; vertical-align:middle">Enter tx fee: </label>
-            <input type="number" style="background: white; border: 1px solid; padding:3px; margin:0; float:right; width:90px" v-model="user_tx_fee"/>
-                  
+            <template v-if="my_coins.value.length > 0 ">
+              <input type="text" v-model="input" style="border:1px solid; background-color: white;float:left;width:75%"/>
+              <button :disabled="!input" v-on:click="sendMessage" type="submit" style="width:24%; text-align: center; margin-right:0; float:right; ">Send</button>
+              <small v-if="sent_alert" style="float:left; color:red">Message sent, it will appear in next few blocks (in about a minute)</small>
+              <small v-if="mint_alert" style="float:left; color:red">Coin mint sent, it will be minted in next few blocks (in about a minute)</small>
+            </template>
+            <template v-else>
+              You don't have a chirp contract coin to send messages. <button style="width:24%; text-align: center; margin-right:0; float:right; " v-on:click="mintCoin">Mint one</button>
+            </template>
+            <div style="float: right; font-size: 0.7em;width:200px; text-align:right;clear:both;">
+              <label style="padding-right: 10px; line-height:1.5; vertical-align:middle; ">Enter tx fee: </label>
+              <input type="number" style="background: white; border: 1px solid; padding:3px; margin:0; float:right; width:90px" v-model="user_tx_fee"/>    
             </div>
             <div style="float:right; font-size:0.7em;clear:both" v-if="tx_fee!== null">
               Recommended fee: {{tx_fee}} XCH
