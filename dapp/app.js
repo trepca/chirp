@@ -165,7 +165,7 @@ export default {
     const mint_alert = ref(false);
     const sent_alert = ref(false);
     let amount = 1;
-    const contract_name = "msg.clvm";
+    const contract_name = "chirp.clvm";
     const interval = setInterval(async () => {
       messages_loading.value = true;
       const updated_msgs = await fetchMessages(contract_name, state
