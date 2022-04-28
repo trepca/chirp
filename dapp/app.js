@@ -19,7 +19,7 @@ async function fetchMessages(contract_name, state, peak_height) {
   if (!peak_height) return [];
   let start_height;
   if (peak_height > 100)
-    start_height = peak - 100;
+    start_height = peak_height - 100;
   else
     start_height = 0;
   const result = await rpc_call("contract.invoke", [
