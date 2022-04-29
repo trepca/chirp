@@ -7,23 +7,32 @@ Features
 - broadcasting to everyone
 - group channels.
 
+Runs on [Coinman](https://github.com/trepca/coinman)
+
+
+And here's a screenshot: 
+
 ![Image](/chirp.png "Chirp - messaging dApp")
 
 # Quickstart with a simulator
 
-No external requirements, no nodes running etc.
+No external service requirements, no nodes running etc.
 
 Install poetry if you don't have it already: 
 https://python-poetry.org/docs/master/#installing-with-the-official-installer
 
-```sh
+Install [coinman](https://github.com/trepca/coinman):
+
+```
 git clone git@github.com:trepca/coinman.git
+
 poetry install
+
 poetry shell
 
 ```
 
-Clone Chirp, a messaging protocol, that includes UX too.
+Now you can install Chirp.
 
 ```
 git clone git@github.com:trepca/chirp.git
@@ -35,9 +44,6 @@ coinman init .
 # run it in a simulator
 
 coinman --simulator runserver
-
-
-
 ```
 
 # Running on testnet or mainnet
