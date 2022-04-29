@@ -3,7 +3,6 @@
 A messaging app running on Chia blockchain.
 
 **Features**
-
 - send messages to general channel
 - send messages to a group 
 - send messages to a public key
