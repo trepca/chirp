@@ -1,11 +1,15 @@
 # Chirp
 
-A messaging protocol.
+A messaging dApp running on Chia blockchain.
 
-Features
+## Features
 
-- broadcasting to everyone
-- group channels.
+- send messages to general channel
+- send messages to a group 
+- send messages to a public key
+- anonymous and censorship resistant messaging  
+- web UI
+- fee handling 
 
 Runs on [Coinman](https://github.com/trepca/coinman)
 
