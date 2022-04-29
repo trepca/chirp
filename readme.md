@@ -66,6 +66,8 @@ coinman init --testnet .
 # for mainnet
 coinman init .
 
+# init will generate a new wallet for you 
+# send at least 0.01 (T)XCH to it to run it
 
 coinman runserver
 
