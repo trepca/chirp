@@ -1,6 +1,6 @@
 # Chirp
 
-A messaging dApp running on Chia blockchain.
+A messaging app running on Chia blockchain.
 
 ## Features
 
