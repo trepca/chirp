@@ -363,7 +363,7 @@ export default {
           </div>
         </div>
         <div style="top:30%" v-if="loading && connected">
-           <span style="font-family: monospace;text-align:center; position:absolute; width:250px; top:50%; left:50%; margin: -220px 0 0 -120px">Doing crypto...</span>
+           <span style="font-family: monospace;text-align:center; position:absolute; width:250px; top:50%; left:50%; margin: -220px 0 0 -120px">Blockchaining...</span>
            <img class="image" src="/dapp/chialisp.svg" width="120" height="120"  />
         </div>
         <div style="top:30%" v-if="!connected">
